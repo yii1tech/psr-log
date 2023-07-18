@@ -11,7 +11,27 @@ use Yii;
  *
  * This class can be used in case you with to utilize 3rd party PSR logger library like "Monolog" in your Yii application.
  *
- * @property \Psr\Log\LoggerInterface|string|array|null $psrLogger related PSR logger.
+ * Configuration example:
+ *
+ * ```php
+ * require __DIR__ . '../vendor/autoload.php';
+ * // ...
+ *
+ * $app = Yii::createWebApplication($config);
+ * $app->setLogger(
+ *     \yii1tech\psr\log\Logger::new()
+ *         ->setPsrLogger(function () {
+ *             $log = new \Monolog\Logger('yii');
+ *             $log->pushHandler(new \Monolog\Handler\StreamHandler('path/to/your.log', \Monolog\Level::Warning));
+ *
+ *             return $log;
+ *         })
+ *         ->enableYiiLog(true)
+ * );
+ * $app->run();
+ * ```
+ *
+ * @property \Psr\Log\LoggerInterface|\Closure|string|array|null $psrLogger related PSR logger.
  *
  * @author Paul Klimov <klimov.paul@gmail.com>
  * @since 1.0
@@ -39,13 +59,18 @@ class Logger extends CLogger
 
         if (!is_object($this->_psrLogger)) {
             $this->_psrLogger = Yii::createComponent($this->_psrLogger);
+        } elseif ($this->_psrLogger instanceof \Closure) {
+            $this->_psrLogger = call_user_func($this->_psrLogger);
         }
 
         return $this->_psrLogger;
     }
 
     /**
-     * @param \Psr\Log\LoggerInterface|string|array|null $psrLogger
+     * Sets the PSR logger to pass logs to.
+     * If `null` provided - no PSR logger will be used.
+     *
+     * @param \Psr\Log\LoggerInterface|\Closure|array|string|null $psrLogger related PSR logger.
      * @return static self reference.
      */
     public function setPsrLogger($psrLogger): self
@@ -103,5 +128,16 @@ class Logger extends CLogger
                 $category
             );
         }
+    }
+
+    /**
+     * Creates new self instance.
+     * This method can be useful when writing chain methods calls.
+     *
+     * @return static new self instance.
+     */
+    public static function new(): self
+    {
+        return new static();
     }
 }

@@ -12,10 +12,36 @@ use Yii;
  *
  * This class can be used in case you with to utilize 3rd party PSR logger library like "Monolog" in your Yii application.
  *
+ * Application configuration example:
+ *
+ * ```php
+ * return [
+ *     'components' => [
+ *         'log' => [
+ *             'class' => \CLogRouter::class,
+ *             'routes' => [
+ *                 [
+ *                     'class' => \yii1tech\psr\log\PsrLogRoute::class,
+ *                     'psrLogger' => function () {
+ *                         $log = new \Monolog\Logger('yii');
+ *                         $log->pushHandler(new \Monolog\Handler\StreamHandler('path/to/your.log', \Monolog\Level::Warning));
+ *
+ *                         return $log;
+ *                     },
+ *                 ],
+ *                 // ...
+ *             ],
+ *         ],
+ *         // ...
+ *     ],
+ *     // ...
+ * ];
+ * ```
+ *
  * > Note: even if you use {@see \yii1tech\psr\log\Logger} as Yii logger, this log route will be unable to handle
  *   passed log context correctly.
  *
- * @property \Psr\Log\LoggerInterface|string|array $psrLogger related PSR logger.
+ * @property \Psr\Log\LoggerInterface|\Closure|string|array $psrLogger related PSR logger.
  *
  * @author Paul Klimov <klimov.paul@gmail.com>
  * @since 1.0
@@ -38,13 +64,15 @@ class PsrLogRoute extends CLogRoute
 
         if (!is_object($this->_psrLogger)) {
             $this->_psrLogger = Yii::createComponent($this->_psrLogger);
+        } elseif ($this->_psrLogger instanceof \Closure) {
+            $this->_psrLogger = call_user_func($this->_psrLogger);
         }
 
         return $this->_psrLogger;
     }
 
     /**
-     * @param \Psr\Log\LoggerInterface|array|string $psrLogger
+     * @param \Psr\Log\LoggerInterface|\Closure|array|string $psrLogger
      * @return static self reference.
      */
     public function setPsrLogger($psrLogger): self

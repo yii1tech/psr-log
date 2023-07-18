@@ -35,6 +35,12 @@ class LoggerTest extends TestCase
         ]);
 
         $this->assertTrue($logger->getPsrLogger() instanceof ArrayLogger);
+
+        $logger->setPsrLogger(function () {
+            return new ArrayLogger();
+        });
+
+        $this->assertTrue($logger->getPsrLogger() instanceof ArrayLogger);
     }
 
     public function testWritePsrLog(): void

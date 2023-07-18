@@ -24,6 +24,12 @@ class PsrLogRouteTest extends TestCase
         ]);
 
         $this->assertTrue($logRoute->getPsrLogger() instanceof ArrayLogger);
+
+        $logRoute->setPsrLogger(function () {
+            return new ArrayLogger();
+        });
+
+        $this->assertTrue($logRoute->getPsrLogger() instanceof ArrayLogger);
     }
 
     public function testWriteLog(): void
