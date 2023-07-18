@@ -7,6 +7,10 @@ use Psr\Log\LoggerInterface;
 use Yii;
 
 /**
+ * Logger is an enhanced version of Yii standard {@see \CLogger}, which allows passing messages to the wrapped PSR logger.
+ *
+ * This class can be used in case you with to utilize 3rd party PSR logger library like "Monolog" in your Yii application.
+ *
  * @property \Psr\Log\LoggerInterface|string|array|null $psrLogger related PSR logger.
  *
  * @author Paul Klimov <klimov.paul@gmail.com>

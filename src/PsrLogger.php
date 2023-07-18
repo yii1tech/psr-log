@@ -1,18 +1,30 @@
 <?php
 
-namespace yii1tech\psr\log\test\support;
+namespace yii1tech\psr\log;
 
 if (version_compare(phpversion(), '8.0', '>=')) {
-    class ArrayLogger extends AbstractArrayLogger
+    /**
+     * {@inheritdoc}
+     */
+    class PsrLogger extends AbstractPsrLogger
     {
+        /**
+         * {@inheritdoc}
+         */
         public function log($level, string|\Stringable $message, array $context = []): void
         {
             $this->writeLog($level, $message, $context);
         }
     }
 } else {
-    class ArrayLogger extends AbstractArrayLogger
+    /**
+     * {@inheritdoc}
+     */
+    class PsrLogger extends AbstractPsrLogger
     {
+        /**
+         * {@inheritdoc}
+         */
         public function log($level, $message, array $context = []): void
         {
             $this->writeLog($level, $message, $context);

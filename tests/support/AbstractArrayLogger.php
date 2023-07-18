@@ -19,7 +19,7 @@ abstract class AbstractArrayLogger implements LoggerInterface
      */
     public $logs = [];
 
-    protected function baseLog($level, $message, array $context = []): void
+    protected function writeLog($level, $message, array $context = []): void
     {
         $this->logs[] = [
             'level' => $level,
