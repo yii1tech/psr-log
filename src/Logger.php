@@ -18,8 +18,7 @@ use Yii;
  * require __DIR__ . '../vendor/autoload.php';
  * // ...
  *
- * $app = Yii::createWebApplication($config);
- * $app->setLogger(
+ * Yii::setLogger(
  *     \yii1tech\psr\log\Logger::new()
  *         ->setPsrLogger(function () {
  *             $log = new \Monolog\Logger('yii');
@@ -29,7 +28,8 @@ use Yii;
  *         })
  *         ->enableYiiLog(true)
  * );
- * $app->run();
+ *
+ * Yii::createWebApplication($config)->run();
  * ```
  *
  * @property \Psr\Log\LoggerInterface|\Closure|string|array|null $psrLogger related PSR logger.
