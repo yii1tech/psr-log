@@ -1,0 +1,40 @@
+{
+    "name": "yii1tech/psr-log",
+    "description": "Provides support for PSR compatible logger for Yii1 application",
+    "keywords": ["yii1", "psr", "log", "logging", "monolog"],
+    "license": "BSD-3-Clause",
+    "support": {
+        "issues": "https://github.com/yii1tech/psr-log/issues",
+        "wiki": "https://github.com/yii1tech/psr-log/wiki",
+        "source": "https://github.com/yii1tech/psr-log"
+    },
+    "authors": [
+        {
+            "name": "Paul Klimov",
+            "email": "klimov.paul@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.1",
+        "yiisoft/yii": "~1.1.0",
+        "psr/log": ">=1.0.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^6.0 || ^7.0 || ^8.0 || ^9.3 || ^10.0.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "yii1tech\\psr\\log\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "yii1tech\\psr\\log\\test\\": "tests"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        }
+    }
+}
