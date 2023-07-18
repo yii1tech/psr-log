@@ -117,6 +117,9 @@ class LoggerTest extends TestCase
         $this->assertSame(LogLevel::INFO, $logs[0][1]);
     }
 
+    /**
+     * @depends testWriteYiiLog
+     */
     public function testDisableYiiLog(): void
     {
         $logger = (new Logger())
@@ -125,5 +128,61 @@ class LoggerTest extends TestCase
         $logger->log('test message', CLogger::LEVEL_INFO, 'test-category');
 
         $this->assertEmpty($logger->getLogs());
+    }
+
+    /**
+     * @depends testWriteYiiLog
+     */
+    public function testWriteYiiLogContext(): void
+    {
+        $logger = (new Logger())
+            ->enableYiiLog(true);
+
+        $logger->log('test message', CLogger::LEVEL_INFO, ['foo' => 'bar']);
+
+        $logs = $logger->getLogs();
+        $logger->flush();
+
+        $this->assertFalse(empty($logs[0]));
+        $this->assertStringContainsString('"foo"', $logs[0][0]);
+        $this->assertStringContainsString('"bar"', $logs[0][0]);
+
+        try {
+            throw new \RuntimeException('test-exception-message');
+        } catch (\Throwable $exception) {
+            // exception prepared
+        }
+
+        $logger->log('test message', CLogger::LEVEL_INFO, ['exception' => $exception]);
+
+        $logs = $logger->getLogs();
+        $logger->flush();
+
+        $this->assertFalse(empty($logs[0]));
+        $this->assertStringContainsString(\RuntimeException::class, $logs[0][0]);
+        $this->assertStringContainsString('test-exception-message', $logs[0][0]);
+    }
+
+    /**
+     * @depends testWritePsrLog
+     */
+    public function testGlobalLogContext(): void
+    {
+        $psrLogger = new ArrayLogger();
+
+        $logger = (new Logger())
+            ->setPsrLogger($psrLogger)
+            ->withContext(function () {
+                return [
+                    'global' => 'global-context',
+                ];
+            });
+
+        $logger->log('test message', CLogger::LEVEL_INFO, 'test-category');
+
+        $logs = $psrLogger->flush();
+        $this->assertFalse(empty($logs[0]));
+        $this->assertArrayHasKey('global', $logs[0]['context']);
+        $this->assertSame('global-context', $logs[0]['context']['global']);
     }
 }

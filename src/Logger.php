@@ -3,6 +3,7 @@
 namespace yii1tech\psr\log;
 
 use CLogger;
+use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Yii;
 
@@ -44,9 +45,19 @@ class Logger extends CLogger
     public $yiiLogEnabled = true;
 
     /**
+     * @var int max nested level for the log context to be written into Yii log message.
+     */
+    public $logContextMaxNestedLevel = 3;
+
+    /**
      * @var \Psr\Log\LoggerInterface|null related PSR logger.
      */
     private $_psrLogger;
+
+    /**
+     * @var \Closure|array
+     */
+    private $_globalLogContext;
 
     /**
      * @return \Psr\Log\LoggerInterface|null related PSR logger instance.
@@ -81,6 +92,34 @@ class Logger extends CLogger
     }
 
     /**
+     * Sets the log context, which should be applied to each log message.
+     * You can use a `\Closure` to specify calculated expression for it.
+     * For example:
+     *
+     * ```php
+     * $logger = \yii1tech\psr\log\Logger::new()
+     *     ->withContext(function () {
+     *         return [
+     *             'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+     *         ];
+     *     });
+     * ```
+     *
+     * @param \Closure|array|null $globalLogContext global log context.
+     * @return static self reference.
+     */
+    public function withContext($globalLogContext): self
+    {
+        if ($globalLogContext !== null && !is_array($globalLogContext) && !$globalLogContext instanceof \Closure) {
+            throw new InvalidArgumentException('"' . get_class($this) . '::$globalLogContext" should be either an array or a `\\Closure`');
+        }
+
+        $this->_globalLogContext = $globalLogContext;
+
+        return $this;
+    }
+
+    /**
      * @see $yiiLogEnabled
      *
      * @param bool $enable whether original Yii logging mechanism should be used or not.
@@ -94,12 +133,29 @@ class Logger extends CLogger
     }
 
     /**
+     * @see $logContextMaxNestedLevel
+     *
+     * @param int $logContextMaxNestedLevel max nested level for the log context to be written into Yii log message.
+     * @return static self reference.
+     */
+    public function setLogContextMaxNestedLevel(int $logContextMaxNestedLevel): self
+    {
+        $this->logContextMaxNestedLevel = $logContextMaxNestedLevel;
+
+        return $this;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function log($message, $level = 'info', $category = 'application'): void
     {
         if (is_array($category)) {
-            $context = $category;
+            $rawContext = array_merge(
+                $this->getGlobalLogContext(),
+                $category
+            );
+            $context = $rawContext;
 
             if (isset($context['category'])) {
                 $category = $context['category'];
@@ -108,9 +164,13 @@ class Logger extends CLogger
                 $context['category'] = $category;
             }
         } else {
-            $context = [
-                'category' => $category,
-            ];
+            $rawContext = $this->getGlobalLogContext();
+            $context = array_merge(
+                $rawContext,
+                [
+                    'category' => $category,
+                ]
+            );
         }
 
         if (($psrLogger = $this->getPsrLogger()) !== null) {
@@ -123,11 +183,132 @@ class Logger extends CLogger
 
         if ($this->yiiLogEnabled) {
             parent::log(
-                $message,
+                $message . $this->createMessageSuffixFromContext($rawContext),
                 LogLevelConverter::toYii($level),
                 $category
             );
         }
+    }
+
+    /**
+     * Returns global log context.
+     *
+     * @return array log context.
+     */
+    protected function getGlobalLogContext(): array
+    {
+        if ($this->_globalLogContext === null) {
+            return [];
+        }
+
+        if ($this->_globalLogContext instanceof \Closure) {
+            try {
+                return call_user_func($this->_globalLogContext);
+            } catch (\Throwable $exception) {
+                return [];
+            }
+        }
+
+        return $this->_globalLogContext;
+    }
+
+    /**
+     * Creates a trailing suffix for the log message from the log context.
+     *
+     * @param array $logContext log context.
+     * @return string log message suffix.
+     */
+    protected function createMessageSuffixFromContext(array $logContext): string
+    {
+        if (empty($logContext)) {
+            return '';
+        }
+
+        $logContext = $this->formatLogContext($logContext);
+
+        return "\n\n" . $this->serializeLogContext($logContext);
+    }
+
+    /**
+     * Serializes log context into a string.
+     *
+     * @param array $logContext raw log context.
+     * @return string serialized log context.
+     */
+    protected function serializeLogContext(array $logContext): string
+    {
+        if (YII_DEBUG) {
+            return json_encode($logContext, JSON_PRETTY_PRINT);
+        }
+
+        return json_encode($logContext);
+    }
+
+    /**
+     * Formats log context to be suitable for string serialization.
+     *
+     * @param array $logContext raw log context.
+     * @param int $nestedLevel current nested level.
+     * @return array formatted log context.
+     */
+    protected function formatLogContext(array $logContext, int $nestedLevel = 0): array
+    {
+        if ($nestedLevel > $this->logContextMaxNestedLevel) {
+            return [];
+        }
+
+        foreach ($logContext as $key => $value) {
+            if (is_object($value)) {
+                if ($value instanceof \Throwable) {
+                    $logContext[$key] = [
+                        'class' => get_class($value),
+                        'code' => $value->getCode(),
+                        'message' => $value->getMessage(),
+                        'file' => $value->getFile(),
+                        'line' => $value->getLine(),
+                    ];
+
+                    continue;
+                }
+
+                if ($value instanceof \Traversable) {
+                    $logContext[$key] = $this->formatLogContext(iterator_to_array($value), $nestedLevel + 1);
+
+                    continue;
+                }
+
+                if ($value instanceof \JsonSerializable) {
+                    $value = $value->jsonSerialize();
+                    if (is_array($value)) {
+                        $logContext[$key] = $this->formatLogContext($value, $nestedLevel + 1);
+
+                        continue;
+                    }
+
+                    if (is_object($value)) {
+                        $logContext[$key] = get_class($value);
+
+                        continue;
+                    }
+
+                    $logContext[$key] = $value;
+
+                    continue;
+                }
+
+                $logContext[$key] = get_class($value);
+
+                continue;
+            }
+
+            if (is_array($value)) {
+                $logContext[$key] = $this->formatLogContext($value, $nestedLevel + 1);
+
+                continue;
+            }
+        }
+
+        return $logContext;
     }
 
     /**
