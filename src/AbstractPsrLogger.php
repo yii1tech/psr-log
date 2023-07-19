@@ -15,6 +15,22 @@ use Yii;
  * AbstractArrayLogger is an intermediate class for {@see PsrLogger} creation.
  * Its existence required since {@see \Psr\Log\LoggerInterface} changes signature over different PHP versions.
  *
+ * Application configuration example:
+ *
+ * ```php
+ * return [
+ *     'components' => [
+ *         \Psr\Log\LoggerInterface::class => [
+ *             'class' => \yii1tech\psr\log\PsrLogger::class,
+ *         ],
+ *         // ...
+ *     ],
+ *     // ...
+ * ];
+ * ```
+ *
+ * > Note: in order to handle log context properly this class should be used in junction with {@see \yii1tech\psr\log\Logger}
+ *
  * @author Paul Klimov <klimov.paul@gmail.com>
  * @since 1.0
  */

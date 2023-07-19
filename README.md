@@ -90,7 +90,7 @@ For example:
 
 use Psr\log\LogLevel;
 
-Yii::log('psr message', LogLevel::INFO); // same as `Yii::log('psr message', CLogger::LEVEL_INFO);` 
+Yii::log('psr message', LogLevel::INFO, 'psr-category'); // same as `Yii::log('psr message', CLogger::LEVEL_INFO, 'psr-category');` 
 
 Yii::log('context message', LogLevel::INFO, [
     'foo' => 'bar', // specifying log context, which will be passed to the related PSR logged, and added as JSON to the Yii log message, if it is enabled 
@@ -105,8 +105,41 @@ try {
 }
 ```
 
+You may also specify a global log context, which should be written with every message. For example:
+
+```php
+<?php
+
+// set custom logger:
+Yii::setLogger(
+    \yii1tech\psr\log\Logger::new()
+        ->setPsrLogger(function () {
+            // ...
+        })
+        ->withContext(function () {
+            $context = [];
+            
+            // log remote IP address if available:
+            if (!empty($_SERVER['REMOTE_ADDR'])) {
+                $context['ip'] = $_SERVER['REMOTE_ADDR'];
+            }
+            
+            // log authenticated user ID, if available:
+            $webUser = Yii::app()->getComponent('user', false);
+            if ($webUser !== null && !$webUser->getIsGuest()) {
+                $context['auth_user_id'] = $webUser->getId();
+            }
+            
+            return $context;
+        })
+);
+```
+
 
 ## PSR Log Route <span id="psr-log-route"></span>
+
+It is not necessary to `\yii1tech\psr\log\Logger` if you need to pass logs to PSR logger.
+As an alternative you can add `\yii1tech\psr\log\PsrLogRoute` log route to the standard Yii "log" component.
 
 Application configuration example:
 
@@ -136,5 +169,61 @@ return [
 ];
 ```
 
+> Note: even if you use `\yii1tech\psr\log\Logger` as Yii logger, this `\yii1tech\psr\log\PsrLogRoute` will be unable to handle
+  passed log context correctly.
+
 
 ## Wrap Yii logger into PSR logger <span id="wrap-yii-logger-into-psr-logger"></span>
+
+There is another use case related to PSR logger besides bootstrapping eternal log storage.
+Sometimes 3rd party libraries may require PSR logger instance to be passed to them in order to function.
+For example, imagine we have a 3rd party library for "daemon" application running:
+
+```php
+<?php
+
+namespace vendor\daemon;
+
+use Psr\Log\LoggerInterface;
+
+class DaemonApplication
+{
+    public function __construct(LoggerInterface $logger)
+    {
+        // ....
+    }
+}
+```
+
+You can use `\yii1tech\psr\log\PsrLogger` to wrap standard Yii logging mechanism into PSR interface.
+
+Application configuration example:
+
+```php
+<?php
+
+return [
+    'components' => [
+        \Psr\Log\LoggerInterface::class => [
+            'class' => \yii1tech\psr\log\PsrLogger::class,
+        ],
+        // ...
+    ],
+    // ...
+];
+```
+
+Now while working with our example external "daemon" application, we can use following code:
+
+```php
+<?php
+
+use Psr\Log\LoggerInterface;
+use vendor\daemon\DaemonApplication;
+
+$daemon = new DaemonApplication(Yii::app()->getComponent(LoggerInterface::class));
+// ...
+```
+
+> Note: in order to handle log context properly `\yii1tech\psr\log\PsrLogger` should be used in junction with `\yii1tech\psr\log\Logger`.
+
