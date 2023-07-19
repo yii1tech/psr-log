@@ -4,6 +4,7 @@ namespace yii1tech\psr\log\test;
 
 use CLogger;
 use Psr\Log\LogLevel;
+use Yii;
 use yii1tech\psr\log\Logger;
 use yii1tech\psr\log\test\support\ArrayLogger;
 
@@ -75,6 +76,27 @@ class LoggerTest extends TestCase
             ],
             $logs[0]['context']
         );
+    }
+
+    /**
+     * @depends testWritePsrLog
+     */
+    public function testYiiLogFacade(): void
+    {
+        $psrLogger = new ArrayLogger();
+
+        $logger = (new Logger())
+            ->setPsrLogger($psrLogger);
+
+        Yii::setLogger($logger);
+
+        Yii::log('test message', LogLevel::INFO, ['category' => 'context-category']);
+
+        $logs = $psrLogger->flush();
+        $this->assertFalse(empty($logs[0]));
+        $this->assertSame(LogLevel::INFO, $logs[0]['level']);
+        $this->assertSame('test message', $logs[0]['message']);
+        $this->assertSame(['category' => 'context-category'], $logs[0]['context']);
     }
 
     public function testWriteYiiLog(): void

@@ -3,6 +3,7 @@
 namespace yii1tech\psr\log\test;
 
 use CConsoleApplication;
+use CLogger;
 use CMap;
 use Yii;
 
@@ -15,6 +16,8 @@ class TestCase extends \PHPUnit\Framework\TestCase
     {
         parent::setUp();
 
+        Yii::setLogger(new CLogger());
+
         $this->mockApplication();
     }
 
@@ -24,6 +27,8 @@ class TestCase extends \PHPUnit\Framework\TestCase
     protected function tearDown(): void
     {
         $this->destroyApplication();
+
+        Yii::setLogger(null);
     }
 
     /**
