@@ -116,7 +116,7 @@ Yii::setLogger(
         ->setPsrLogger(function () {
             // ...
         })
-        ->withContext(function () {
+        ->withGlobalContext(function () {
             $context = [];
             
             // log remote IP address if available:

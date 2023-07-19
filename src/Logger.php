@@ -5,6 +5,7 @@ namespace yii1tech\psr\log;
 use CLogger;
 use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 use Yii;
 
 /**
@@ -108,7 +109,7 @@ class Logger extends CLogger
      * @param \Closure|array|null $globalLogContext global log context.
      * @return static self reference.
      */
-    public function withContext($globalLogContext): self
+    public function withGlobalContext($globalLogContext): self
     {
         if ($globalLogContext !== null && !is_array($globalLogContext) && !$globalLogContext instanceof \Closure) {
             throw new InvalidArgumentException('"' . get_class($this) . '::$globalLogContext" should be either an array or a `\\Closure`');
@@ -205,6 +206,22 @@ class Logger extends CLogger
             try {
                 return call_user_func($this->_globalLogContext);
             } catch (\Throwable $exception) {
+                $errorMessage = 'Unable to resolve global log context: ' . $exception->getMessage();
+
+                if (($psrLogger = $this->getPsrLogger()) !== null) {
+                    $psrLogger->log(
+                        LogLevel::ERROR,
+                        $errorMessage,
+                        [
+                            'exception' => $exception,
+                        ]
+                    );
+                }
+
+                if ($this->yiiLogEnabled) {
+                    parent::log($errorMessage, CLogger::LEVEL_ERROR, 'system.log');
+                }
+
                 return [];
             }
         }

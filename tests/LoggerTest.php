@@ -172,7 +172,7 @@ class LoggerTest extends TestCase
 
         $logger = (new Logger())
             ->setPsrLogger($psrLogger)
-            ->withContext(function () {
+            ->withGlobalContext(function () {
                 return [
                     'global' => 'global-context',
                 ];
