@@ -186,6 +186,24 @@ class LoggerTest extends TestCase
     }
 
     /**
+     * @depends testWriteYiiLogContext
+     */
+    public function testYiiLogContextSeparator(): void
+    {
+        $logger = (new Logger())
+            ->enableYiiLog(true)
+            ->logMessageContextSeparator('||||');
+
+        $logger->log('test message', CLogger::LEVEL_INFO, ['foo' => 'bar']);
+
+        $logs = $logger->getLogs();
+        $logger->flush();
+
+        $this->assertFalse(empty($logs[0]));
+        $this->assertStringContainsString('test message||||{', $logs[0][0]);
+    }
+
+    /**
      * @depends testWritePsrLog
      */
     public function testGlobalLogContext(): void

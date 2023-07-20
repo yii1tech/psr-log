@@ -53,6 +53,12 @@ class Logger extends CLogger
     public $logContextMaxNestedLevel = 3;
 
     /**
+     * @var string string, which used to separated log context representation from actual log message, when writing Yii log.
+     * @since 1.0.1
+     */
+    public $logMessageContextSeparator = "\n\n";
+
+    /**
      * @var \Psr\Log\LoggerInterface|null related PSR logger.
      */
     private $_psrLogger;
@@ -98,6 +104,20 @@ class Logger extends CLogger
     public function enableYiiLog(bool $enable = true): self
     {
         $this->yiiLogEnabled = $enable;
+
+        return $this;
+    }
+
+    /**
+     * @see $logMessageContextSeparator
+     * @since 1.0.1
+     *
+     * @param string $logMessageContextSeparator string, which used to separated log context representation from actual log message, when writing Yii log.
+     * @return static self reference.
+     */
+    public function logMessageContextSeparator(string $logMessageContextSeparator): self
+    {
+        $this->logMessageContextSeparator = $logMessageContextSeparator;
 
         return $this;
     }
@@ -196,7 +216,7 @@ class Logger extends CLogger
 
         $logContext = $this->formatLogContext($logContext);
 
-        return "\n\n" . $this->serializeLogContext($logContext);
+        return $this->logMessageContextSeparator . $this->serializeLogContext($logContext);
     }
 
     /**
