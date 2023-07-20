@@ -285,10 +285,11 @@ class Logger extends CLogger
      * Creates new self instance.
      * This method can be useful when writing chain methods calls.
      *
+     * @param mixed ...$args constructor arguments.
      * @return static new self instance.
      */
-    public static function new(): self
+    public static function new(...$args): self
     {
-        return new static();
+        return new static(...$args);
     }
 }
