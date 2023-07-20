@@ -92,6 +92,8 @@ use Psr\log\LogLevel;
 
 Yii::log('psr message', LogLevel::INFO, 'psr-category'); // same as `Yii::log('psr message', CLogger::LEVEL_INFO, 'psr-category');` 
 
+Yii::log('context message', LogLevel::INFO, ['category' => 'context-category']); // same as `Yii::log('context message', CLogger::LEVEL_INFO, 'context-category');` 
+
 Yii::log('context message', LogLevel::INFO, [
     'foo' => 'bar', // specifying log context, which will be passed to the related PSR logged, and added as JSON to the Yii log message, if it is enabled 
 ]);
