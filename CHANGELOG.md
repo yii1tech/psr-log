@@ -1,8 +1,8 @@
 Yii1 PSR Log extension
 ======================
 
-1.0.1 Under Development
------------------------
+1.0.1, July 20, 2023
+--------------------
 
 - Enh: Added ability for global log context setup at `PsrLogger` (klimov-paul)
 - Enh: Added `PsrLogger::new()` static method for a new instance creation (klimov-paul)
