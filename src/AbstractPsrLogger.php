@@ -5,6 +5,7 @@ namespace yii1tech\psr\log;
 use CLogger;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LoggerTrait;
+use Throwable;
 use Yii;
 
 /**
@@ -37,6 +38,7 @@ use Yii;
 abstract class AbstractPsrLogger implements LoggerInterface
 {
     use LoggerTrait;
+    use HasGlobalContext;
 
     /**
      * @var \CLogger|null Yii logger to write logs into.
@@ -77,6 +79,11 @@ abstract class AbstractPsrLogger implements LoggerInterface
      */
     protected function writeLog($level, $message, array $context = []): void
     {
+        $context = array_merge(
+            $this->resolveGlobalContext(),
+            $context
+        );
+
         $yiiLogger = $this->getYiiLogger();
 
         if (!$yiiLogger instanceof Logger) {
@@ -88,5 +95,15 @@ abstract class AbstractPsrLogger implements LoggerInterface
             LogLevelConverter::toYii($level),
             $context
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function logGlobalContextResolutionError(Throwable $exception): void
+    {
+        $errorMessage = 'Unable to resolve global log context: ' . $exception->getMessage();
+
+        $this->getYiiLogger()->log($errorMessage, CLogger::LEVEL_ERROR, 'system.log');
     }
 }

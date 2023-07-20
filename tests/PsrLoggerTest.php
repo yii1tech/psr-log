@@ -55,4 +55,37 @@ class PsrLoggerTest extends TestCase
         $this->assertFalse(empty($logs[0]));
         $this->assertSame('application', $logs[0][2]);
     }
+
+    /**
+     * @depends testWriteLog
+     */
+    public function testGlobalLogContext(): void
+    {
+        $yiiLogger = new CLogger();
+
+        $logger = (new PsrLogger())
+            ->setYiiLogger($yiiLogger);
+
+        $logger->withGlobalContext(function () {
+            return [
+                'category' => 'global-category',
+            ];
+        });
+
+        $logger->log('test message', CLogger::LEVEL_INFO);
+
+        $logs = $yiiLogger->getLogs();
+        $yiiLogger->flush();
+        $this->assertFalse(empty($logs[0]));
+        $this->assertSame('global-category', $logs[0][2]);
+
+        $logger->log('test message', CLogger::LEVEL_INFO, [
+            'category' => 'test-category',
+        ]);
+
+        $logs = $yiiLogger->getLogs();
+        $yiiLogger->flush();
+        $this->assertFalse(empty($logs[0]));
+        $this->assertSame('test-category', $logs[0][2]);
+    }
 }

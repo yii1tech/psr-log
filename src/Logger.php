@@ -3,9 +3,9 @@
 namespace yii1tech\psr\log;
 
 use CLogger;
-use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
+use Throwable;
 use Yii;
 
 /**
@@ -40,6 +40,8 @@ use Yii;
  */
 class Logger extends CLogger
 {
+    use HasGlobalContext;
+
     /**
      * @var bool whether original Yii logging mechanism should be used or not.
      */
@@ -54,11 +56,6 @@ class Logger extends CLogger
      * @var \Psr\Log\LoggerInterface|null related PSR logger.
      */
     private $_psrLogger;
-
-    /**
-     * @var \Closure|array
-     */
-    private $_globalLogContext;
 
     /**
      * @return \Psr\Log\LoggerInterface|null related PSR logger instance.
@@ -88,34 +85,6 @@ class Logger extends CLogger
     public function setPsrLogger($psrLogger): self
     {
         $this->_psrLogger = $psrLogger;
-
-        return $this;
-    }
-
-    /**
-     * Sets the log context, which should be applied to each log message.
-     * You can use a `\Closure` to specify calculated expression for it.
-     * For example:
-     *
-     * ```php
-     * $logger = \yii1tech\psr\log\Logger::new()
-     *     ->withContext(function () {
-     *         return [
-     *             'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
-     *         ];
-     *     });
-     * ```
-     *
-     * @param \Closure|array|null $globalLogContext global log context.
-     * @return static self reference.
-     */
-    public function withGlobalContext($globalLogContext): self
-    {
-        if ($globalLogContext !== null && !is_array($globalLogContext) && !$globalLogContext instanceof \Closure) {
-            throw new InvalidArgumentException('"' . get_class($this) . '::$globalLogContext" should be either an array or a `\\Closure`');
-        }
-
-        $this->_globalLogContext = $globalLogContext;
 
         return $this;
     }
@@ -153,7 +122,7 @@ class Logger extends CLogger
     {
         if (is_array($category)) {
             $rawContext = array_merge(
-                $this->getGlobalLogContext(),
+                $this->resolveGlobalContext(),
                 $category
             );
             $context = $rawContext;
@@ -165,7 +134,7 @@ class Logger extends CLogger
                 $context['category'] = $category;
             }
         } else {
-            $rawContext = $this->getGlobalLogContext();
+            $rawContext = $this->resolveGlobalContext();
             $context = array_merge(
                 $rawContext,
                 [
@@ -192,41 +161,25 @@ class Logger extends CLogger
     }
 
     /**
-     * Returns global log context.
-     *
-     * @return array log context.
+     * {@inheritdoc}
      */
-    protected function getGlobalLogContext(): array
+    protected function logGlobalContextResolutionError(Throwable $exception): void
     {
-        if ($this->_globalLogContext === null) {
-            return [];
+        $errorMessage = 'Unable to resolve global log context: ' . $exception->getMessage();
+
+        if (($psrLogger = $this->getPsrLogger()) !== null) {
+            $psrLogger->log(
+                LogLevel::ERROR,
+                $errorMessage,
+                [
+                    'exception' => $exception,
+                ]
+            );
         }
 
-        if ($this->_globalLogContext instanceof \Closure) {
-            try {
-                return call_user_func($this->_globalLogContext);
-            } catch (\Throwable $exception) {
-                $errorMessage = 'Unable to resolve global log context: ' . $exception->getMessage();
-
-                if (($psrLogger = $this->getPsrLogger()) !== null) {
-                    $psrLogger->log(
-                        LogLevel::ERROR,
-                        $errorMessage,
-                        [
-                            'exception' => $exception,
-                        ]
-                    );
-                }
-
-                if ($this->yiiLogEnabled) {
-                    parent::log($errorMessage, CLogger::LEVEL_ERROR, 'system.log');
-                }
-
-                return [];
-            }
+        if ($this->yiiLogEnabled) {
+            parent::log($errorMessage, CLogger::LEVEL_ERROR, 'system.log');
         }
-
-        return $this->_globalLogContext;
     }
 
     /**
@@ -276,7 +229,7 @@ class Logger extends CLogger
 
         foreach ($logContext as $key => $value) {
             if (is_object($value)) {
-                if ($value instanceof \Throwable) {
+                if ($value instanceof Throwable) {
                     $logContext[$key] = [
                         'class' => get_class($value),
                         'code' => $value->getCode(),
