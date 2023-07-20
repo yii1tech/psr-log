@@ -1,6 +1,12 @@
 Yii1 PSR Log extension
 ======================
 
+1.0.2 Under Development
+-----------------------
+
+- Bug: Fixed "Class 'Psr\log\LogLevel' not found" error (klimov-paul)
+
+
 1.0.1, July 20, 2023
 --------------------
 

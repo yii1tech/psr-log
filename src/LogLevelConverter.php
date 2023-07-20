@@ -3,7 +3,7 @@
 namespace yii1tech\psr\log;
 
 use CLogger;
-use Psr\log\LogLevel;
+use Psr\Log\LogLevel;
 
 /**
  * LogLevelConverter allows converting log level specification values from Yii to PSR and vice versa.
