@@ -1,8 +1,8 @@
 Yii1 PSR Log extension
 ======================
 
-1.0.2 Under Development
------------------------
+1.0.3, July 28, 2023
+--------------------
 
 - Bug: Fixed compatibility with "psr/log" 1.x at PHP 8.x (klimov-paul)
 
